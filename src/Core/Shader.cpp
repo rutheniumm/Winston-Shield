@@ -35,13 +35,13 @@ Shader::Shader(const std::string& vsPath, const std::string& fsPath) {
 	CreateProgram({ vShader, fShader });
 }
 
-Shader::Shader(const std::string& vsPath, const std::string& fsPath, const std::string& gsPath) {
-	unsigned int vShader = CreateShader(GL_VERTEX_SHADER, vsPath);
-	unsigned int fShader = CreateShader(GL_FRAGMENT_SHADER, fsPath);
-	unsigned int gShader = CreateShader(GL_GEOMETRY_SHADER, gsPath);
-
-	CreateProgram({ vShader, fShader, gShader });
-}
+//Shader::Shader(const std::string& vsPath, const std::string& fsPath, const std::string& gsPath) {
+//	unsigned int vShader = CreateShader(GL_VERTEX_SHADER, vsPath);
+//	unsigned int fShader = CreateShader(GL_FRAGMENT_SHADER, fsPath);
+//	unsigned int gShader = CreateShader(GL_GEOMETRY_SHADER, gsPath);
+//
+//	CreateProgram({ vShader, fShader, gShader });
+//}
 
 Shader::~Shader() {
 	glDeleteProgram(m_ID);
@@ -66,7 +66,7 @@ unsigned int Shader::CreateShader(GLenum type, const std::string& srcPath) {
 		shaderCode = shaderStream.str();
 	}
 	else {
-		std::cerr << "Cannot read shader file at: " << srcPath << std::endl;
+		printf("Cannot read shader file");
 		return -1;
 	}
 

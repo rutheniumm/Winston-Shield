@@ -1,97 +1,83 @@
 #include "Window.h"
 #include <iostream>
-
-// TODO: remove into a key input class
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
+#include <emscripten/emscripten.h>
 
 Window::Window(int width, int height, std::string title) {
-
-    if (!glfwInit()) {
-        std::cout << "Failed to initialize GLFW" << std::endl;
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        std::cout << "Failed to initialize SDL2: " << SDL_GetError() << std::endl;
         return;
     }
 
-    GLFWwindow* window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
-    if (!window)
-    {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
+    // Create an SDL window
+    m_windowPtr = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
+    if (!m_windowPtr) {
+        std::cout << "Failed to create SDL window: " << SDL_GetError() << std::endl;
+        SDL_Quit();
         return;
+    } else {
+         printf("Created SDL window");
     }
+
+    // Create an OpenGL context
+    m_glContext = SDL_GL_CreateContext(m_windowPtr);
+    if (!m_glContext) {
+        std::cout << "Failed to create OpenGL context: " << SDL_GetError() << std::endl;
+        SDL_DestroyWindow(m_windowPtr);
+        SDL_Quit();
+        return;
+    } else {
+        printf("Created OpenGL context");
+    }
+
+    // Initialize OpenGL settings
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     m_params.width = width;
     m_params.height = height;
 
-    // Center window on screen
-    const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-    int screenWidth = mode->width;
-    int screenHeight = mode->height;
-    glfwSetWindowMonitor(window, NULL, (screenWidth / 2) - (width / 2), (screenHeight / 2) - (height / 2), width, height, GLFW_DONT_CARE);
+    // Set the window size callback (in SDL, you need to manually manage the resizing)
 
-    glfwSetKeyCallback(window, key_callback);
-    glfwMakeContextCurrent(window);
-
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // Initialize GLAD
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        glfwTerminate();
-        return;
-    }
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // Store params in the window pointer GLFW provides for us for use in lambdas
-    glfwSetWindowUserPointer(window, &m_params);
-
-    glfwSetWindowSizeCallback(window, 
-        [](GLFWwindow* window, int width, int height) {
-            WindowParams& params = *static_cast<WindowParams*>(glfwGetWindowUserPointer(window));
-            params.width = width;
-            params.height = height;
-
-            glViewport(0, 0, width, height);
-        });
-
-    m_windowPtr = window;
+    // Set up the Emscripten main loop directly
+    SDL_GL_SetSwapInterval(1); // Enable V-Sync by default
 }
 
 void Window::Update() {
-    glfwSwapBuffers(m_windowPtr);
-    glfwPollEvents();
+    // Handle events
+    SDL_PollEvent(&m_event);
+    if (m_event.type == SDL_QUIT) {
+        SDL_QuitRequested();
+    }
+
+    // Swap buffers
+    SDL_GL_SwapWindow(m_windowPtr);  // Swap buffers
 }
 
 Window::~Window() {
-    glfwDestroyWindow(m_windowPtr);
-    glfwTerminate();
+    SDL_GL_DeleteContext(m_glContext);  // Delete OpenGL context
+    SDL_DestroyWindow(m_windowPtr);     // Destroy the window
+    SDL_Quit();                        // Quit SDL
 }
 
 double Window::GetTime() {
-    return glfwGetTime();
+    return SDL_GetTicks() / 1000.0;  // Get time in seconds
 }
 
 void Window::SetVSync(bool val) {
-    val ? glfwSwapInterval(1) : glfwSwapInterval(0);
+    SDL_GL_SetSwapInterval(val ? 1 : 0); // 1 enables V-Sync, 0 disables
 }
 
 void Window::SetTitle(std::string title) {
-    glfwSetWindowTitle(m_windowPtr, title.c_str());
+    SDL_SetWindowTitle(m_windowPtr, title.c_str());
 }
 
 bool Window::IsOpen() {
-    return !glfwWindowShouldClose(m_windowPtr);
+    return !SDL_QuitRequested();
 }
 
-GLFWwindow* Window::GetPtr() {
+SDL_Window* Window::GetPtr() {
     return m_windowPtr;
 }
 

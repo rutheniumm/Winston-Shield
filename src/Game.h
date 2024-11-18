@@ -25,6 +25,7 @@ public:
 
 	void Update(float dt);
 	void Render();
+	void mainLoop(void *mainLoopArg);
 
 	static Window& GetWindow() { return *m_window; }
 	static Input& GetInput() { return *m_input; }

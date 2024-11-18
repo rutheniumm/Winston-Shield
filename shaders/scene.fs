@@ -1,19 +1,25 @@
-#version 330 core
+#version 300 es
+precision highp float;
+out vec4 FragCol;  // Explicitly specify location 0
 
-out vec4 FragCol;
+in vec3 normal;              // Input normal vector
+in vec3 lightDirection;      // Input light direction
 
-in vec3 normal;
-in vec3 lightDirection;
-
-uniform vec3 color;
+uniform vec3 color;          // The color of the object
 
 void main() {
-	float ambientStrength = 0.1;
-	vec3 ambient = color * ambientStrength;
+    // Ambient lighting
+    float ambientStrength = 0.1;
+    vec3 ambient = color * ambientStrength;
 
-	vec3 lightDir = normalize(-lightDirection);
-	float diffuseStrength = max(dot(lightDir, normal), 0);
-	vec3 diffuse = color * diffuseStrength;
+    // Normalize the vectors to ensure they are unit vectors
+    vec3 lightDir = normalize(-lightDirection);
+    vec3 norm = normalize(normal);  // Normalize the normal vector
 
-	FragCol = vec4((ambient + diffuse), 1);
+    // Diffuse lighting
+    float diffuseStrength = max(dot(lightDir, norm), 0.0);
+    vec3 diffuse = color * diffuseStrength;
+
+    // Final color output
+    FragCol = vec4((ambient + diffuse), 1.0);
 }

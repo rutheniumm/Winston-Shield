@@ -1,23 +1,25 @@
 #include "Model.h"
 #include "Game.h"
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 Model::Model(const std::string& path) {
 
-	// Load in model using Assimp's importer, aiProcess_Triangulate
-	// tells it to turn any non-triangles in the model into triangles
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate);
+    // TinyObjLoader's objects for loading the model
+    std::string err;
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
 
-	if (!scene) {
-		print("Error loading model '" << path << "': " << importer.GetErrorString());
-		return;
-	}
+    // Load the OBJ file
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, path.c_str());
 
-	for (unsigned int i = 0; i < scene->mNumMeshes; i++)
-		AddMesh(scene->mMeshes[i]);
+    if (!ret) {
+        print("Error loading model '" << path << "': " << err);
+        return;
+    }
+
+    // Process the shapes in the OBJ file
+    for (const auto& shape : shapes) {
+        AddMesh(attrib, shape);
+    }
 }
 
 void Model::Draw(Shader& shader) {
@@ -25,40 +27,37 @@ void Model::Draw(Shader& shader) {
 		mesh.Draw(shader);
 }
 
-void Model::AddMesh(aiMesh* mesh) {
-	std::vector<Vertex> vertices;
-	std::vector<Index> inds;
+void Model::AddMesh(const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape) {
+    std::vector<Vertex> vertices;
+    std::vector<Index> inds;
 
-	for (unsigned int i = 0; i < mesh->mNumVertices; i++)
-	{
-		Vertex vertex;
+    // Loop through the faces in the shape
+    for (size_t i = 0; i < shape.mesh.indices.size(); i++) {
+        tinyobj::index_t idx = shape.mesh.indices[i];
+        Vertex vertex;
 
-		// All vertices have a position
-		vertex.pos = {
-			mesh->mVertices[i].x,
-			mesh->mVertices[i].y,
-			mesh->mVertices[i].z
-		};
+        // Position data (x, y, z)
+        vertex.pos = {
+            attrib.vertices[3 * idx.vertex_index + 0],
+            attrib.vertices[3 * idx.vertex_index + 1],
+            attrib.vertices[3 * idx.vertex_index + 2]
+        };
 
-		// A vertex may have a normal
-		if (mesh->mNormals) {
-			vertex.normal = {
-				mesh->mNormals[i].x,
-				mesh->mNormals[i].y,
-				mesh->mNormals[i].z
-			};
-		}
+        // Normal data (if available)
+        if (!attrib.normals.empty()) {
+            vertex.normal = {
+                attrib.normals[3 * idx.normal_index + 0],
+                attrib.normals[3 * idx.normal_index + 1],
+                attrib.normals[3 * idx.normal_index + 2]
+            };
+        }
 
-		vertices.push_back(vertex);
-	}
+        // Texture coordinates (if available)
+    
 
-	// Read in index data
-	for (unsigned int i = 0; i < mesh->mNumFaces; i++)
-	{
-		aiFace face = mesh->mFaces[i];
-		for (unsigned int j = 0; j < face.mNumIndices; j++)
-			inds.push_back(face.mIndices[j]);
-	}
+        vertices.push_back(vertex);
+        inds.push_back(i); // Indexing into the vertex array
+    }
 
-	m_meshes.emplace_back(vertices, inds);
+    m_meshes.emplace_back(vertices, inds);
 }

@@ -3,7 +3,10 @@
 #include <unordered_map>
 #include <string>
 #include <glm/glm.hpp>
-#include <glad/glad.h>
+#include <GLES3/gl3.h>
+#include <emscripten/emscripten.h>
+#include <stdio.h>
+#include <cstdio>
 
 class Shader {
 private:

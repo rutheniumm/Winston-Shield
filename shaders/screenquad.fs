@@ -1,10 +1,12 @@
-#version 330 core
+#version 300 es
+precision highp float;
 
-out vec4 FragCol;
 
 uniform sampler2D tex;
 
-in vec2 uv;
+layout(location = 0) out vec4 FragCol;
+layout(location = 1) out vec2 uv;         // Second output, a different color or texture buffer
+
 
 void main() {
 	FragCol = texture(tex, uv);

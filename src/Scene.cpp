@@ -1,5 +1,5 @@
 #include "Scene.h"
-#include <glad/glad.h>
+#include <GLES3/gl3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
@@ -10,6 +10,8 @@
 #include "Core/Model.h"
 #include "Constants.h"
 #include <cmath>
+#include <cstdio>
+#include <stdio.h>
 
 std::unique_ptr<Shader> sceneShader;
 std::unique_ptr<Shader> depthShader;
@@ -19,6 +21,7 @@ std::unique_ptr<Shader> bubbleShader;
 std::unique_ptr<Mesh> screenQuad;
 std::unique_ptr<Model> bubble;
 std::unique_ptr<Model> sceneModel;
+
 
 glm::vec3 bubblePos(0, 0, 0);
 unsigned int FBO, depthTexture;
@@ -30,7 +33,8 @@ Scene::Scene() {
 	bubbleShader = std::make_unique<Shader>("shaders/bubble.vs", "shaders/bubble.fs");
 
 	bubble = std::make_unique<Model>("assets/sphere.obj");
-	sceneModel = std::make_unique<Model>("assets/scene.obj");
+	sceneModel = std::make_unique<Model>("assets/scene.obj"); 
+	printf("Scene loaded");
 
 	// Just a quad that spans the screen to render depth texture to
 	std::vector<Vertex> screenQuadVerts = {
@@ -53,7 +57,9 @@ Scene::Scene() {
 
 	// Set up empty depth texture
 	glm::vec2 windowSize = Game::GetWindow().GetSize();
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, windowSize.x, windowSize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	printf("GL_TEXTURE_2D FORMAT");
+	printf("%d", GL_TEXTURE_2D);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, windowSize.x, windowSize.y, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -63,26 +69,29 @@ Scene::Scene() {
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
 
-	// No need for color attachment
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		print("Framebuffer is not complete");
+		printf("Framebuffer is not complete");
 		return;
-	}
+	};
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Scene::Update(float dt) {
-	static float SPEED = 1.0f;
-	Input& input = Game::GetInput();
-	if (input.IsKeyPressed(GLFW_KEY_LEFT))
-		bubblePos.x -= SPEED * dt;
-	if (input.IsKeyPressed(GLFW_KEY_RIGHT))
-		bubblePos.x += SPEED * dt;
+    static float SPEED = 1.0f;
+    
+    // Access the current keyboard state
+    const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+    
+    // Check if specific keys are pressed
+    if (currentKeyStates[SDL_SCANCODE_LEFT]) // SDL_SCANCODE_LEFT corresponds to the left arrow key
+        bubblePos.x -= SPEED * dt;
+    
+    if (currentKeyStates[SDL_SCANCODE_RIGHT]) // SDL_SCANCODE_RIGHT corresponds to the right arrow key
+        bubblePos.x += SPEED * dt;
 }
+
 
 static void RenderBubble(Shader& shader) {
 	glm::mat4 model(1.0f);

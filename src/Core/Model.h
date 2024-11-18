@@ -2,8 +2,8 @@
 
 #include <string>
 #include <vector>
-#include <assimp/scene.h>
 #include "Mesh.h"
+#include  "tiny_obj_loader.h"
 
 class Model {
 private:
@@ -12,7 +12,7 @@ private:
 
 	std::vector<Mesh> m_meshes;
 
-	void AddMesh(aiMesh*);
+	void AddMesh(const tinyobj::attrib_t& attrib, const tinyobj::shape_t& shape);
 
 public:
 
