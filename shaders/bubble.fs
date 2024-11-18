@@ -1,4 +1,5 @@
-#version 300 es;
+#version 300 es
+precision highp float;
 
 out vec4 FragCol;
 
@@ -15,8 +16,8 @@ uniform float near;
 uniform float far;
 
 float LinearizeDepth(float depth) {
-	float zNdc = 2 * depth - 1;
-	float zEye = (2 * far * near) / ((far + near) - zNdc * (far - near));
+	float zNdc = 2.0 * depth - 1.0;
+	float zEye = (2.0 * far * near) / ((far + near) - zNdc * (far - near));
 	float linearDepth = (zEye - near) / (far - near);
 	return linearDepth;
 }
@@ -28,9 +29,9 @@ void main() {
 
 	// The more orthogonal the camera is to the fragment, the stronger the rim light.
 	// abs() so that the back faces get treated the same as the front, giving a rim effect.
-	float rimStrength = 1 - abs(dot(viewAngle, normal)); // The more orthogonal, the stronger
+	float rimStrength = 1.0 - abs(dot(viewAngle, normal)); // The more orthogonal, the stronger
 
-	float rimFactor = pow(rimStrength, 4); // higher power = sharper rim light
+	float rimFactor = pow(rimStrength, 4.0); // higher power = sharper rim light
 	vec4 rim = vec4(rimFactor);
 
 	// - Create the intersection line -
@@ -44,7 +45,7 @@ void main() {
 	float threshold = 0.001;	
 	float normalizedDistance = clamp(distance / threshold, 0.0, 1.0); // [0, threshold] -> [0, 1]
 
-	vec4 intersection = mix(vec4(1), vec4(0), normalizedDistance); // white to transparent gradient
+	vec4 intersection = mix(vec4(1.0), vec4(0.0), normalizedDistance); // white to transparent gradient
 
 	vec4 bubbleBase = vec4(color, alpha);
 

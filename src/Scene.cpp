@@ -234,12 +234,17 @@ void ApplySSAO(Shader &shader)
 }
 
 void Scene::Update(float dt) {
-	static float SPEED = 1.0f;
-	Input& input = Game::GetInput();
-	if (input.IsKeyPressed(GLFW_KEY_LEFT))
-		bubblePos.x -= SPEED * dt;
-	if (input.IsKeyPressed(GLFW_KEY_RIGHT))
-		bubblePos.x += SPEED * dt;
+    static float SPEED = 1.0f;
+    
+    // Access the current keyboard state
+    const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+    
+    // Check if specific keys are pressed
+    if (currentKeyStates[SDL_SCANCODE_LEFT]) // SDL_SCANCODE_LEFT corresponds to the left arrow key
+        bubblePos.x -= SPEED * dt;
+    
+    if (currentKeyStates[SDL_SCANCODE_RIGHT]) // SDL_SCANCODE_RIGHT corresponds to the right arrow key
+        bubblePos.x += SPEED * dt;
 }
 
 
