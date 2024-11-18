@@ -31,8 +31,9 @@ public:
 
 	GLint GetUniformLocation(const std::string& name);
 	void SetMatrix4f(const std::string& name, const glm::mat4& val);
+    void SetMatrix3f(const std::string& name, const glm::mat3& val);
 	void SetVec4f(const std::string& name, const glm::vec4& val);
-	void SetVec3f(const std::string& name, const glm::vec3& val);
+	void SetVec3f(const std::string& name, const glm::vec3& val, const int numbers);
 	void SetVec2f(const std::string& name, const glm::vec2& val);
 	void SetInt(const std::string& name, int val);
 	void SetFloat (const std::string& name, float val);

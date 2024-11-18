@@ -9,26 +9,24 @@ Window::Window(int width, int height, std::string title) {
     }
 
     // Create an SDL window
-    m_windowPtr = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
+    m_windowPtr = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height,   SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN);
     if (!m_windowPtr) {
         std::cout << "Failed to create SDL window: " << SDL_GetError() << std::endl;
         SDL_Quit();
         return;
-    } else {
-         printf("Created SDL window");
     }
+     printf("INFO: SDL window created with: %s samples.\n", glGetString(GL_SAMPLES));
 
     // Create an OpenGL context
-    m_glContext = SDL_GL_CreateContext(m_windowPtr);
+    m_glContext = SDL_GL_CreateContext(m_windowPtr); 
+    printf("INFO: GL version: %s\n", glGetString(GL_VERSION));
     if (!m_glContext) {
         std::cout << "Failed to create OpenGL context: " << SDL_GetError() << std::endl;
         SDL_DestroyWindow(m_windowPtr);
         SDL_Quit();
         return;
-    } else {
-        printf("Created OpenGL context");
     }
-
+    printf("INFO: created GL context: %s\n", glGetString(GL_VENDOR));
     // Initialize OpenGL settings
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
