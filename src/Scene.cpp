@@ -1,7 +1,8 @@
 #include "Scene.h"
 #include <GLES3/gl3.h>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_transform.hpp> 
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <vector>
 #include <cmath>
@@ -29,6 +30,27 @@ glm::vec3 bubblePos(0, 0, 0);
 unsigned int FBO, depthTexture, normalTexture, ssaoTexture, noiseTexture, ssaoFBO, ssaoBlurFBO; 
 std::vector<glm::vec3> kernel;
 std::vector<glm::vec3> ssaoNoise;
+
+void GenerateSSAOTexture()
+{
+	ssaoNoise.resize(16);
+	for (unsigned int i = 0; i < 16; ++i)
+	{
+		ssaoNoise[i] = glm::vec3(
+			(rand() % 2000 - 1000) / 1000.0f,
+			(rand() % 2000 - 1000) / 1000.0f,
+			0.0f);
+	}
+
+	glGenTextures(1, &noiseTexture);
+	glBindTexture(GL_TEXTURE_2D, noiseTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
 
 Scene::Scene()
 {
@@ -93,7 +115,7 @@ Scene::Scene()
 	GLuint normalTexture;
 	glGenTextures(1, &normalTexture);
 	glBindTexture(GL_TEXTURE_2D, normalTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, windowSize.x, windowSize.y, 0, GL_RGB, GL_FLOAT, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -108,33 +130,12 @@ Scene::Scene()
 
 	glGenTextures(1, &ssaoTexture);
 	glBindTexture(GL_TEXTURE_2D, ssaoTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, Game::GetWindow().GetSize().x, Game::GetWindow().GetSize().y, 0, GL_RED, GL_FLOAT, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, windowSize.x, windowSize.y, 0, GL_RED, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoTexture, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void Scene::GenerateSSAOTexture()
-{
-	ssaoNoise.resize(16);
-	for (unsigned int i = 0; i < 16; ++i)
-	{
-		ssaoNoise[i] = glm::vec3(
-			(rand() % 2000 - 1000) / 1000.0f,
-			(rand() % 2000 - 1000) / 1000.0f,
-			0.0f);
-	}
-
-	glGenTextures(1, &noiseTexture);
-	glBindTexture(GL_TEXTURE_2D, noiseTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 4, 4, 0, GL_RGB, GL_FLOAT, &ssaoNoise[0]);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 static void RenderSceneDepth(Shader &shader)
@@ -157,13 +158,13 @@ static void RenderScene(Shader &shader)
 	shader.SetMatrix4f("projection", Game::GetCamera().GetProjection());
 
 	shader.SetMatrix4f("view", Game::GetCamera().GetView());
-	shader.SetVec3f("color", {0.3f, 0.3f, 0.3f});
-	shader.SetVec3f("lightDir", {0.5f, -0.72f, -0.65f});
+	shader.SetVec3f("color", {0.3f, 0.3f, 0.3f}, 1);
+	shader.SetVec3f("lightDir", {0.5f, -0.72f, -0.65f}, 1);
 
 	sceneModel->Draw(shader);
 }
 
-void Scene::RenderSSAO(Shader &shader)
+void RenderSSAO(Shader &shader)
 {
 	shader.Use();
 	glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
@@ -171,7 +172,7 @@ void Scene::RenderSSAO(Shader &shader)
 
 	shader.SetMatrix4f("projection", Game::GetCamera().GetProjection());
 	shader.SetMatrix4f("view", Game::GetCamera().GetView());
-	shader.SetVec3f("sampleKernel", glm::value_ptr(kernel[0]), 16);
+	shader.SetVec3f("sampleKernel", kernel[0], 16);
 
 	// Pass other uniforms (depth, normal)
 	glActiveTexture(GL_TEXTURE0);
@@ -188,7 +189,7 @@ void Scene::RenderSSAO(Shader &shader)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Scene::RenderSSAOBlur(Shader &shader)
+void RenderSSAOBlur(Shader &shader)
 {
 	shader.Use();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -211,7 +212,7 @@ static void RenderBubble(Shader &shader)
 	shader.Use();
 	shader.SetMatrix4f("modelView", Game::GetCamera().GetView() * model);
 	shader.SetMatrix4f("projection", Game::GetCamera().GetProjection());
-	shader.SetVec3f("color", {0, 0.9f, 1});
+	shader.SetVec3f("color", {0, 0.9f, 1}, 1);
 	shader.SetFloat("alpha", 0.01f);
 	shader.SetVec2f("screensize", Game::GetWindow().GetSize());
 	shader.SetFloat("near", NEAR);
@@ -222,7 +223,7 @@ static void RenderBubble(Shader &shader)
 	bubble->Draw(shader);
 }
 
-void Scene::ApplySSAO(Shader &shader)
+void ApplySSAO(Shader &shader)
 {
 	shader.Use();
 	glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
@@ -231,6 +232,16 @@ void Scene::ApplySSAO(Shader &shader)
 	glBindTexture(GL_TEXTURE_2D, ssaoTexture);
 	sceneModel->Draw(shader);
 }
+
+void Scene::Update(float dt) {
+	static float SPEED = 1.0f;
+	Input& input = Game::GetInput();
+	if (input.IsKeyPressed(GLFW_KEY_LEFT))
+		bubblePos.x -= SPEED * dt;
+	if (input.IsKeyPressed(GLFW_KEY_RIGHT))
+		bubblePos.x += SPEED * dt;
+}
+
 
 void Scene::Render()
 {
@@ -242,7 +253,8 @@ void Scene::Render()
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	RenderScene();
+	RenderScene(*sceneShader);
+
 	// Step 2: Render the SSAO pass
 	glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
 	RenderSSAO(*ssaoShader);
